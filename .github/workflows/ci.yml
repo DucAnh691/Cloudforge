@@ -25,4 +25,5 @@ jobs:
         run: echo "no test yet"
 
       - name: Build Docker (test only)
+        working-directory: docker
         run: docker build -t cloudforge-api .
