@@ -4,7 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🔥 Thêm version để test CI/CD
-const VERSION = process.env.VERSION || "v2";
+const VERSION = process.env.VERSION || "v1";
 
 // Middleware
 app.use((req, res, next) => {
