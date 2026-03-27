@@ -4,7 +4,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🔥 Thêm version để test CI/CD
-const VERSION = process.env.VERSION || "v1";
+const VERSION = process.env.VERSION || "v2";
 
 // Middleware
 app.use((req, res, next) => {
@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
-    message: "CloudForge API running qua da 🚀",
+    message: "CloudForge API - Deployment Successful! 🚀",
     version: VERSION,
     timestamp: new Date(),
   });

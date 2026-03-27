@@ -17,8 +17,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Determine Version
+        id: versioning
+        run: |
+          # Lấy thông tin từ workflow CI vừa chạy
+          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+
+          # Nếu head_branch bắt đầu bằng 'v', đó là một Tag
+          if [[ "$HEAD_BRANCH" =~ ^v[0-9] ]]; then
+            VERSION="$HEAD_BRANCH"
+          else
+            VERSION="sha-$(echo $HEAD_SHA | cut -c1-7)"
+          fi
+          echo "APP_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: AWS creds
         uses: aws-actions/configure-aws-credentials@v4
@@ -34,8 +51,12 @@ jobs:
       - name: Build & Push
         run: |
           REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          docker build -t $REGISTRY/$ECR_REPOSITORY:latest -f docker/Dockerfile .
-          docker push $REGISTRY/$ECR_REPOSITORY:latest
+          APP_VERSION=${{ steps.versioning.outputs.APP_VERSION }}
+          # Chỉ build 1 lần với 2 tag: tag version và tag latest
+          docker build -t $REGISTRY/$ECR_REPOSITORY:$APP_VERSION \
+                       -t $REGISTRY/$ECR_REPOSITORY:latest \
+                       -f docker/Dockerfile .
+          docker push $REGISTRY/$ECR_REPOSITORY --all-tags
 
       - name: Update kubeconfig
         run: |
@@ -44,4 +65,10 @@ jobs:
           --name $CLUSTER_NAME
 
       - name: Deploy
-        run: kubectl apply -f k8s/
+        run: |
+          REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          APP_VERSION=${{ steps.versioning.outputs.APP_VERSION }}
+          # Cập nhật image tag và biến môi trường VERSION trong manifest
+          sed -i "s|image:.*|image: $REGISTRY/$ECR_REPOSITORY:$APP_VERSION|g" k8s/deployment.yaml
+          sed -i "/name: VERSION/{n;s|value:.*|value: \"$APP_VERSION\"|}" k8s/deployment.yaml
+          kubectl apply -f k8s/
