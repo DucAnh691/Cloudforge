@@ -15,8 +15,12 @@ spec:
       containers:
         - name : api    
           image: 427077356037.dkr.ecr.ap-southeast-1.amazonaws.com/cloudforge-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          env:
+            - name: VERSION
+              value: "latest"
 
           livenessProbe:
             httpGet:
