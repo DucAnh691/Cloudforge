@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudforge-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudforge-api
+  template:
+    metadata:
+      labels:
+        app: cloudforge-api
+    spec:
+      containers:
+        - name : api    
+          image: 427077356037.dkr.ecr.ap-southeast-1.amazonaws.com/cloudforge-api:latest
+          ports:
+            - containerPort: 3000
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10

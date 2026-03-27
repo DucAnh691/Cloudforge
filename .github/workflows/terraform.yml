@@ -1,0 +1,23 @@
+name: Terraform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Init
+        run: terraform -chdir=infra/envs/dev init
+
+      - name: Plan
+        run: terraform -chdir=infra/envs/dev plan -var-file=dev.tfvars
+
+      - name: Apply
+        run: terraform -chdir=infra/envs/dev apply -auto-approve -var-file=dev.tfvars

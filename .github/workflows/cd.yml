@@ -1,0 +1,51 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECR_REPOSITORY: cloudforge-api
+  CLUSTER_NAME: cloudforge-eks
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: AWS creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region: ap-southeast-1
+
+      - name: Login ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION \
+          | docker login \
+          --username AWS \
+          --password-stdin 427077356037.dkr.ecr.ap-southeast-1.amazonaws.com
+
+      - name: Build & Push
+        run: |
+          docker build -t $ECR_REPOSITORY .
+          docker tag $ECR_REPOSITORY:latest \
+          427077356037.dkr.ecr.ap-southeast-1.amazonaws.com/$ECR_REPOSITORY:latest
+          docker push 427077356037.dkr.ecr.ap-southeast-1.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+          --region $AWS_REGION \
+          --name $CLUSTER_NAME
+
+      - name: Deploy
+        run: kubectl apply -f k8s/
