@@ -5,7 +5,7 @@ WORKDIR /app
 COPY app/package*.json ./
 RUN npm install --omit=dev
 
-COPY /app/src ./src
+COPY app/src ./src
 
 FROM node:18-alpine
 
